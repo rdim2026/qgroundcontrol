@@ -975,6 +975,7 @@ void Joystick::_handleAxis()
         bool circleCorrection = _joystickSettings.circleCorrection()->rawValue().toBool();
         bool throttleSmoothing = _joystickSettings.throttleSmoothing()->rawValue().toBool();
         bool additionalAxesFunctionIsManualControl = _joystickSettings.additionalAxesFunction()->rawValue().toUInt() == 0;
+        bool gimbalCameraControl = _joystickSettings.enableGimbalCameraControl()->rawValue().toBool();
         double exponentialPercent = _joystickSettings.exponentialPct()->rawValue().toDouble();
 
         if (_getJoystickAxisForAxisFunction(rollFunction) == kJoystickAxisNotAssigned ||
@@ -992,6 +993,10 @@ void Joystick::_handleAxis()
         float yaw = _adjustRange(_getAxisValue(axisIndex), _rgCalibration[axisIndex],useDeadband);
         axisIndex = _getJoystickAxisForAxisFunction(throttleFunction);
         float throttle = _adjustRange(_getAxisValue(axisIndex), _rgCalibration[axisIndex], throttleModeCenterZero ? useDeadband : false);
+
+        // Camera zoom is an absolute control. Preserve the calibrated physical
+        // throttle position before vehicle-specific throttle processing.
+        const float cameraZoomNormalized = std::clamp((throttle + 1.0f) * 0.5f, 0.0f, 1.0f);        
 
         float pitchExtension = qQNaN();
         if (_joystickSettings.enableManualControlPitchExtension()->rawValue().toBool()) {
@@ -1126,6 +1131,53 @@ void Joystick::_handleAxis()
             yaw =   -exponential * powf(yaw,  3) + ((1 + exponential) * yaw);
         }
 
+        if (gimbalCameraControl) {
+            // QGC calibrated stick functions -> payload controls:
+            //
+            // roll     = right stick X -> gimbal yaw
+            // pitch    = right stick Y -> gimbal pitch
+            // yaw      = left  stick X -> gimbal roll
+            // throttle = left  stick Y -> camera zoom
+            //
+            // QGC pitch axis is inverted for the usual stick convention.
+            const float gimbalRoll  = yaw;
+            const float gimbalPitch = -pitch;
+            const float gimbalYaw   = roll;
+
+            _gimbalCameraControlWasActive = true;
+
+            emit gimbalAxisControl(gimbalRoll, gimbalPitch, gimbalYaw);
+
+            const int zoomPct =
+                std::clamp(static_cast<int>(std::lround(cameraZoomNormalized * 100.0f)),
+                        0, 100);
+
+            if (zoomPct != _lastCameraZoomPct) {
+                _lastCameraZoomPct = zoomPct;
+                emit cameraZoomAxis(static_cast<float>(zoomPct));
+            }
+
+            qCWarning(JoystickLog)
+                << "[JOY-GIMBAL-CAMERA]"
+                << "roll=" << gimbalRoll
+                << "pitch=" << gimbalPitch
+                << "yaw=" << gimbalYaw
+                << "zoom=" << zoomPct;
+
+            emit axisValues(roll, pitch, yaw, throttle);
+
+            // Important: while payload-control mode is active, do NOT also send
+            // these axes as vehicle MANUAL_CONTROL.
+            return;
+        }
+
+        if (_gimbalCameraControlWasActive) {
+            // Stop a rate-controlled gimbal when the mode is switched off.
+            emit gimbalAxisControl(0.0f, 0.0f, 0.0f);
+            _gimbalCameraControlWasActive = false;
+            _lastCameraZoomPct = -1;
+        }        
+
         // Adjust throttle to 0:1 range
         if (throttleModeCenterZero && vehicle->supports()->throttleModeCenterZero()) {
             if (!vehicle->supports()->negativeThrust() || !negativeThrust) {
@@ -1232,6 +1284,7 @@ void Joystick::_startPollingForVehicle(Vehicle &vehicle)
         (void) connect(this, &Joystick::gimbalYawStart,     gimbal, &GimbalController::gimbalYawStart);
         (void) connect(this, &Joystick::gimbalPitchStop,    gimbal, &GimbalController::gimbalPitchStop);
         (void) connect(this, &Joystick::gimbalYawStop,      gimbal, &GimbalController::gimbalYawStop);
+        (void) connect(this, &Joystick::gimbalAxisControl,  gimbal, &GimbalController::gimbalAxisControl);
     }
 
     _pollingFlags |= PollingForVehicle;
@@ -1288,6 +1341,13 @@ void Joystick::_stopAllPollingForVehicle()
 
     if (_pollingVehicle) {
         _pollingVehicle->sendJoystickAuxRcOverrideThreadSafe({}, {}, false);
+
+        if (_gimbalCameraControlWasActive) {
+            emit gimbalAxisControl(0.0f, 0.0f, 0.0f);
+            _gimbalCameraControlWasActive = false;
+            _lastCameraZoomPct = -1;
+        }
+
         (void) disconnect(this, nullptr, _pollingVehicle, nullptr);
         (void) disconnect(_pollingVehicle, &Vehicle::flightModesChanged, this, &Joystick::_flightModesChanged);
         if (GimbalController *const gimbal = _pollingVehicle->gimbalController()) {

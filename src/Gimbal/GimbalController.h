@@ -38,11 +38,13 @@ public:
     Q_INVOKABLE void acquireGimbalControl();
     Q_INVOKABLE void releaseGimbalControl();
     Q_INVOKABLE void sendRate();
+    Q_INVOKABLE void gimbalAxisControl(float roll, float pitch, float yaw);
 
     /// Send gimbal attitude rates directly without using active gimbal's rate properties
     /// @param pitch_rate_deg_s Pitch rate in degrees per second
     /// @param yaw_rate_deg_s Yaw rate in degrees per second
     Q_INVOKABLE void sendGimbalRate(float pitch_rate_deg_s, float yaw_rate_deg_s);
+    Q_INVOKABLE void gimbalAxisControl(float roll, float pitch, float yaw);
 
 signals:
     void activeGimbalChanged();
@@ -100,8 +102,7 @@ private:
     void _checkComplete(Gimbal &gimbal, GimbalPairId pairId);
     bool _tryGetGimbalControl();
     bool _yawInVehicleFrame(uint32_t flags);
-
-    void _sendGimbalAttitudeRates(float pitch_rate_deg_s, float yaw_rate_deg_s);
+    void _sendGimbalAttitudeRates(float roll_rate_deg_s, float pitch_rate_deg_s, float yaw_rate_deg_s);
 
     QTimer _rateSenderTimer;
     Vehicle *_vehicle = nullptr;

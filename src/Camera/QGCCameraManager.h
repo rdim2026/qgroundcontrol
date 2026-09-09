@@ -109,6 +109,7 @@ protected slots:
     void _mavlinkMessageReceived(const mavlink_message_t& message);
     void _activeJoystickChanged(Joystick* joystick);
     void _stepZoom(int direction);
+    void _setJoystickZoom(float zoomLevel);
     void _startZoom(int direction);
     void _stopZoom();
     void _stepFocus(int direction);

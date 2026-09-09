@@ -342,6 +342,8 @@ signals:
     void connectionStateChanged(const QString &newState);
     void linkedGroupChanged();
     void axisValues(float roll, float pitch, float yaw, float throttle);
+    void gimbalAxisControl(float roll, float pitch, float yaw);
+    void cameraZoomAxis(float zoomLevel);    
     void startContinuousZoom(int direction);
     void stopContinuousZoom();
     void stepZoom(int direction);
@@ -410,7 +412,6 @@ private:
     virtual bool _getHat(int hat, int i) const = 0;
 
     void run() override;
-
     void _startPollingForVehicle(Vehicle &vehicle);
     void _startPollingForActiveVehicle();
     void _startPollingForConfiguration();
@@ -483,6 +484,10 @@ private:
     // HOTAS/Multi-device linking
     QString _linkedGroupId;
     QString _linkedGroupRole;
+
+    // Alternate joystick control
+    bool _gimbalCameraControlWasActive = false;
+    int _lastCameraZoomPct = -1;    
 
     static constexpr const char *_buttonActionNone =               QT_TR_NOOP("No Action");
     static constexpr const char *_buttonActionArm =                QT_TR_NOOP("Arm");

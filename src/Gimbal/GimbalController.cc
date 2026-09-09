@@ -590,7 +590,7 @@ void GimbalController::sendRate()
     // We send raw mavlink instead of using MAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW because
     // when both pitch and yaw stop simultaneously, Vehicle's duplicate command detection
     // drops the second sendMavCommand call, leaving one axis spinning indefinitely.
-    _sendGimbalAttitudeRates(_activeGimbal->pitchRate(), _activeGimbal->yawRate());
+    _sendGimbalAttitudeRates(NAN, _activeGimbal->pitchRate(), _activeGimbal->yawRate());
 
     // Stop timeout if both unset.
     if ((_activeGimbal->pitchRate() == 0.f) && (_activeGimbal->yawRate() == 0.f)) {
@@ -606,7 +606,7 @@ void GimbalController::sendGimbalRate(float pitch_rate_deg_s, float yaw_rate_deg
         return;
     }
 
-    _sendGimbalAttitudeRates(pitch_rate_deg_s, yaw_rate_deg_s);
+    _sendGimbalAttitudeRates(NAN, pitch_rate_deg_s, yaw_rate_deg_s);
 
     if (pitch_rate_deg_s == 0.f && yaw_rate_deg_s == 0.f) {
         _rateSenderTimer.stop();
@@ -615,10 +615,43 @@ void GimbalController::sendGimbalRate(float pitch_rate_deg_s, float yaw_rate_deg
     }
 }
 
-void GimbalController::_sendGimbalAttitudeRates(float pitch_rate_deg_s,
+void GimbalController::gimbalAxisControl(float roll, float pitch, float yaw)
+{
+    if (!_tryGetGimbalControl()) {
+        return;
+    }
+
+    // Do not let the legacy 2-axis rate resend timer overwrite
+    // the 3-axis joystick command.
+    _rateSenderTimer.stop();
+
+    constexpr float maxRateDegS = 30.0f;
+
+    const float rollRate  = roll  * maxRateDegS;
+    const float pitchRate = pitch * maxRateDegS;
+    const float yawRate   = yaw   * maxRateDegS;
+
+    qCWarning(GimbalControllerLog)
+        << "[JOY-GIMBAL-RATE]"
+        << "normalized:"
+        << "roll=" << roll
+        << "pitch=" << pitch
+        << "yaw=" << yaw
+        << "rates deg/s:"
+        << "roll=" << rollRate
+        << "pitch=" << pitchRate
+        << "yaw=" << yawRate;
+
+    _sendGimbalAttitudeRates(
+        rollRate,
+        pitchRate,
+        yawRate);
+}
+
+void GimbalController::_sendGimbalAttitudeRates(float roll_rate_deg_s,
+                                                float pitch_rate_deg_s,
                                                 float yaw_rate_deg_s)
 {
-
     auto sharedLink = _vehicle->vehicleLinkManager()->primaryLink().lock();
     if (!sharedLink) {
         qCDebug(GimbalControllerLog) << "_sendGimbalAttitudeRates: primary link gone!";
@@ -628,9 +661,8 @@ void GimbalController::_sendGimbalAttitudeRates(float pitch_rate_deg_s,
     uint32_t flags =
         GIMBAL_MANAGER_FLAGS_ROLL_LOCK |
         GIMBAL_MANAGER_FLAGS_PITCH_LOCK |
-        GIMBAL_MANAGER_FLAGS_YAW_IN_VEHICLE_FRAME;   // use vehicle/body frame
+        GIMBAL_MANAGER_FLAGS_YAW_IN_VEHICLE_FRAME;
 
-    // Preserve current yaw-lock state instead of changing it:
     if (_activeGimbal->yawLock()) {
         flags |= GIMBAL_MANAGER_FLAGS_YAW_LOCK;
     }
@@ -648,7 +680,7 @@ void GimbalController::_sendGimbalAttitudeRates(float pitch_rate_deg_s,
         flags,
         static_cast<uint8_t>(_activeGimbal->deviceId()->rawValue().toUInt()),
         qnan,
-        NAN,
+        qDegreesToRadians(roll_rate_deg_s),
         qDegreesToRadians(pitch_rate_deg_s),
         qDegreesToRadians(yaw_rate_deg_s)
     );

@@ -661,6 +661,7 @@ void QGCCameraManager::_activeJoystickChanged(Joystick *joystick)
         (void) disconnect(_activeJoystick, &Joystick::startVideoRecord,    this, &QGCCameraManager::_startVideoRecording);
         (void) disconnect(_activeJoystick, &Joystick::stopVideoRecord,     this, &QGCCameraManager::_stopVideoRecording);
         (void) disconnect(_activeJoystick, &Joystick::toggleVideoRecord,   this, &QGCCameraManager::_toggleVideoRecording);
+        (void) disconnect(_activeJoystick, &Joystick::cameraZoomAxis,      this, &QGCCameraManager::_setJoystickZoom);
     }
 
     _activeJoystick = joystick;
@@ -678,6 +679,7 @@ void QGCCameraManager::_activeJoystickChanged(Joystick *joystick)
         (void) connect(_activeJoystick, &Joystick::startVideoRecord,    this, &QGCCameraManager::_startVideoRecording, Qt::UniqueConnection);
         (void) connect(_activeJoystick, &Joystick::stopVideoRecord,     this, &QGCCameraManager::_stopVideoRecording, Qt::UniqueConnection);
         (void) connect(_activeJoystick, &Joystick::toggleVideoRecord,   this, &QGCCameraManager::_toggleVideoRecording, Qt::UniqueConnection);
+        (void) connect(_activeJoystick, &Joystick::cameraZoomAxis,      this, &QGCCameraManager::_setJoystickZoom, Qt::UniqueConnection);
     }
 }
 
@@ -723,6 +725,24 @@ void QGCCameraManager::_stepZoom(int direction)
             pCamera->stepZoom(direction);
         }
     }
+}
+
+void QGCCameraManager::_setJoystickZoom(float zoomLevel)
+{
+    MavlinkCameraControlInterface *pCamera = currentCameraInstance();
+    if (!pCamera) {
+        return;
+    }
+
+    const qreal level =
+        std::clamp(static_cast<qreal>(zoomLevel),
+                   static_cast<qreal>(0.0),
+                   static_cast<qreal>(100.0));
+
+    qCWarning(CameraManagerLog)
+        << "[JOY-CAMERA-ZOOM]" << level;
+
+    pCamera->setZoomLevel(level);
 }
 
 void QGCCameraManager::_startZoom(int direction)
