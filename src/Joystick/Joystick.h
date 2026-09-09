@@ -487,7 +487,7 @@ private:
 
     // Alternate joystick control
     bool _gimbalCameraControlWasActive = false;
-    int _lastCameraZoomPct = -1;    
+    int _lastCameraZoomPct = -1;
 
     static constexpr const char *_buttonActionNone =               QT_TR_NOOP("No Action");
     static constexpr const char *_buttonActionArm =                QT_TR_NOOP("Arm");

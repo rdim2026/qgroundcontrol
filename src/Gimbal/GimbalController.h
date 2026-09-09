@@ -38,7 +38,6 @@ public:
     Q_INVOKABLE void acquireGimbalControl();
     Q_INVOKABLE void releaseGimbalControl();
     Q_INVOKABLE void sendRate();
-    Q_INVOKABLE void gimbalAxisControl(float roll, float pitch, float yaw);
 
     /// Send gimbal attitude rates directly without using active gimbal's rate properties
     /// @param pitch_rate_deg_s Pitch rate in degrees per second

@@ -996,7 +996,7 @@ void Joystick::_handleAxis()
 
         // Camera zoom is an absolute control. Preserve the calibrated physical
         // throttle position before vehicle-specific throttle processing.
-        const float cameraZoomNormalized = std::clamp((throttle + 1.0f) * 0.5f, 0.0f, 1.0f);        
+        const float cameraZoomNormalized = std::clamp((throttle + 1.0f) * 0.5f, 0.0f, 1.0f);
 
         float pitchExtension = qQNaN();
         if (_joystickSettings.enableManualControlPitchExtension()->rawValue().toBool()) {

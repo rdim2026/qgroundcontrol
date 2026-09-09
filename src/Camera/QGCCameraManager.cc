@@ -15,6 +15,7 @@
 #include "GimbalControllerSettings.h"
 #include "SettingsManager.h"
 #include <numbers>
+#include <algorithm>
 
 constexpr double kPi = std::numbers::pi_v<double>;
 
