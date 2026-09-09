@@ -154,6 +154,13 @@
             "type": "bool",
             "default": false,
             "label": "Enable additional axis 6"
+        },
+        {
+            "name": "enableGimbalCameraControl",
+            "shortDesc": "Use joystick axes for gimbal and camera control",
+            "type": "bool",
+            "default": false,
+            "label": "Enable Gimbal/Camera Joystick Control"
         }
     ]
 }

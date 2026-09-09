@@ -17,6 +17,7 @@ ColumnLayout {
     readonly property real _margins: ScreenTools.defaultFontPixelHeight / 2
     readonly property bool _anyAdvancedSettingsEnabled:
         _joystickSettings.circleCorrection.rawValue ||
+        _joystickSettings.enableGimbalCameraControl.rawValue ||
         _joystickSettings.useDeadband.rawValue ||
         _joystickSettings.enableManualControlPitchExtension.rawValue ||
         _joystickSettings.enableManualControlRollExtension.rawValue ||
@@ -112,6 +113,14 @@ ColumnLayout {
                 text: qsTr("Deadband can be set during the first step of calibration by gently wiggling each axis. ")
             }
         }
+
+        FactCheckBoxSlider {
+            Layout.fillWidth: true
+
+            text: qsTr("Enable Gimbal/Camera Joystick Control")
+            fact: _joystickSettings.enableGimbalCameraControl
+            visible: fact.userVisible
+        }        
 
         ColumnLayout {
             Layout.fillWidth: true

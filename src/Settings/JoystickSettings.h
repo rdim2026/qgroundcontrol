@@ -40,6 +40,7 @@ public:
     DEFINE_SETTINGFACT(enableAdditionalAxis4)
     DEFINE_SETTINGFACT(enableAdditionalAxis5)
     DEFINE_SETTINGFACT(enableAdditionalAxis6)
+    DEFINE_SETTINGFACT(enableGimbalCameraControl)
 
 private:
     QString _joystickName;

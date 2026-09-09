@@ -117,6 +117,7 @@ Joystick::Joystick(const QString &name, int axisCount, int buttonCount, int hatC
         ensureFactThread(_joystickSettings.exponentialPct());
         ensureFactThread(_joystickSettings.enableManualControlPitchExtension());
         ensureFactThread(_joystickSettings.enableManualControlRollExtension());
+        ensureFactThread(_joystickSettings.enableGimbalCameraControl());
         ensureFactThread(_joystickSettings.enableAdditionalAxis1());
         ensureFactThread(_joystickSettings.enableAdditionalAxis2());
         ensureFactThread(_joystickSettings.enableAdditionalAxis3());
